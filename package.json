@@ -1,0 +1,26 @@
+{
+  "name": "kmdb-node",
+  "version": "1.0.0",
+  "description": "NodeJS client for KMDB",
+  "main": "index.js",
+  "dependencies": {
+    "grpc": "0.9.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meteorhacks/kmdb-node.git"
+  },
+  "keywords": [
+    "kmdb"
+  ],
+  "author": "Meteorhacks",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/meteorhacks/kmdb-node/issues"
+  },
+  "homepage": "https://github.com/meteorhacks/kmdb-node#readme"
+}
