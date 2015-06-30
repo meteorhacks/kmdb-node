@@ -4,7 +4,8 @@
   "description": "NodeJS client for KMDB",
   "main": "index.js",
   "dependencies": {
-    "grpc": "0.9.2"
+    "protobufjs": "4.0.x",
+    "simple-rpc": "1.0.x"
   },
   "devDependencies": {},
   "scripts": {

@@ -1,40 +1,44 @@
 var path = require('path');
-var grpc = require('grpc');
-var kmdb = grpc.load(__dirname + '/protocol.proto').kmdb;
+var srpc = require('simple-rpc');
+var proto = require('./protocol');
 
 //   CLIENT
 // ----------
 
 function Client (address) {
-  this.address = address;
-  this.service = new kmdb.DatabaseService(address);
+  this._address = address;
+  this._client = new srpc.Client(address);
 }
 
-Client.prototype.put = function(req, callback) {
-  this.service.put(req, callback);
+Client.prototype.connect = function(callback) {
+  this._client.connect(callback);
 };
 
-Client.prototype.putBatch = function(reqs, callback) {
+Client.prototype.put = function(reqs, callback) {
+  this._call('put', reqs, proto.PutReqBatch, proto.PutResBatch, callback);
+};
+
+Client.prototype.inc = function(reqs, callback) {
+  this._call('inc', reqs, proto.IncReqBatch, proto.IncResBatch, callback);
+};
+
+Client.prototype.get = function(reqs, callback) {
+  this._call('get', reqs, proto.GetReqBatch, proto.GetResBatch, callback);
+};
+
+Client.prototype._call = function(method, reqs, enc, dec, callback) {
   var batch = {batch: reqs};
-  this.service.putBatch(batch, callback);
-};
+  var buffer = enc.encode(batch).toBuffer();
 
-Client.prototype.inc = function(req, callback) {
-  this.service.inc(req, callback);
-};
+  this._client.call(method, buffer, function (err, data) {
+    if(err) {
+      callback(err);
+      return;
+    }
 
-Client.prototype.incBatch = function(reqs, callback) {
-  var batch = {batch: reqs};
-  this.service.incBatch(batch, callback);
-};
-
-Client.prototype.get = function(req, callback) {
-  this.service.get(req, callback);
-};
-
-Client.prototype.getBatch = function(reqs, callback) {
-  var batch = {batch: reqs};
-  this.service.getBatch(batch, callback);
+    var res = dec.decode(data);
+    callback(null, res);
+  });
 };
 
 module.exports = Client;
