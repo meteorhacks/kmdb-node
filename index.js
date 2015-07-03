@@ -8,6 +8,7 @@ var proto = require('./protocol');
 function Client (address) {
   this._address = address;
   this._client = new srpc.Client(address);
+  this._client.on('error', this._onError.bind(this));
 }
 
 Client.prototype.connect = function(callback) {
@@ -39,6 +40,11 @@ Client.prototype._call = function(method, reqs, enc, dec, callback) {
     var res = dec.decode(data);
     callback(null, res);
   });
+};
+
+Client.prototype._onError = function(err) {
+  console.error(err);
+  this._client.connect();
 };
 
 module.exports = Client;
