@@ -1,18 +1,42 @@
 var path = require('path');
 var srpc = require('simple-rpc');
+var util = require('util');
+var events = require('events');
 var proto = require('./protocol');
 
 //   CLIENT
 // ----------
 
 function Client (address) {
+  events.EventEmitter.call(this);
+
+  this.config = {
+    reconnect: {timeout: 5000},
+  };
+
   this._address = address;
   this._client = new srpc.Client(address);
-  this._client.on('error', this._onError.bind(this));
+
+  this.__onerror = this._onerror.bind(this);
+  this.__onclose = this._onclose.bind(this);
+  this.__reconnect = this._reconnect.bind(this);
 }
 
+// Client emits: ['error', 'connect']
+util.inherits(Client, events.EventEmitter);
+
 Client.prototype.connect = function(callback) {
-  this._client.connect(callback);
+  var self = this;
+
+  this._client.removeListener('error', this.__onerror);
+  this._client.removeListener('close', this.__onclose);
+  this._client.once('error', callback);
+  this._client.connect(function (err) {
+    self._client.removeListener('error', callback);
+    self._client.on('error', self.__onerror);
+    self._client.on('close', self.__onclose);
+    callback(err);
+  });
 };
 
 Client.prototype.put = function(reqs, callback) {
@@ -42,9 +66,32 @@ Client.prototype._call = function(method, reqs, enc, dec, callback) {
   });
 };
 
-Client.prototype._onError = function(err) {
-  console.error(err);
-  this._client.connect();
+Client.prototype._reconnect = function() {
+  var self = this;
+
+  console.error('kmdb: reconnecting');
+  this._client.connect(function (err) {
+    if(!err) {
+      console.error('kmdb: reconnected');
+      self.emit('connect');
+      return;
+    }
+
+    console.error('kmdb: reconnect failed: ', err);
+    var timeout = self.config.reconnect.timeout;
+    setTimeout(self.__reconnect, timeout);
+  });
+};
+
+Client.prototype._onerror = function(err) {
+  console.error('kmdb: error', err);
+  this.emit('error', err);
+};
+
+Client.prototype._onclose = function() {
+  console.error('kmdb: connection lost');
+  var timeout = this.config.reconnect.timeout;
+  setTimeout(this.__reconnect, timeout);
 };
 
 module.exports = Client;

@@ -1,7 +1,7 @@
 var Client = require('../');
 
 var BATCH_SIZE = 200;
-var ADDRESS = 'srpc://localhost:3000';
+var ADDRESS = 'kmdb://localhost:3000';
 var RANDOMIZE = true;
 var CONCURRENCY = 5;
 
@@ -22,16 +22,21 @@ for(var i=0; i<BATCH_SIZE; ++i) {
 }
 
 var client = new Client(ADDRESS);
+client.on('connect', start);
 client.connect(function (err) {
   if(err) {
     console.error(err);
-    return;
+    process.exit(1);
   }
 
+  start();
+});
+
+function start () {
   for(var i=0; i<CONCURRENCY; ++i) {
     send();
   }
-});
+}
 
 function send () {
   var now = Date.now() * 1000000;
@@ -48,8 +53,11 @@ function send () {
   }
 
   client.put(reqs, function (err, res) {
-    if(err) console.error(err);
-    counter++;
-    send();
+    if(err) {
+      console.error(err);
+    } else {
+      counter++;
+      send();
+    }
   });
 }
