@@ -39,6 +39,22 @@ Client.prototype.connect = function(callback) {
   });
 };
 
+Client.prototype.info = function(callback) {
+  var enc = proto.InfoReq;
+  var dec = proto.InfoRes;
+  var buffer = enc.encode({}).toBuffer();
+
+  this._client.call('info', buffer, function (err, data) {
+    if(err) {
+      callback(err);
+      return;
+    }
+
+    var res = dec.decode(data);
+    callback(null, res);
+  });
+};
+
 Client.prototype.put = function(reqs, callback) {
   this._call('put', reqs, proto.PutReqBatch, proto.PutResBatch, callback);
 };
