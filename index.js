@@ -124,13 +124,12 @@ Client.prototype._onerror = function(err) {
 };
 
 Client.prototype._onclose = function() {
-  console.error('kmdb: connection lost');
-
   if(this._reconnectTimer) {
     clearTimeout(this._reconnectTimer);
   }
 
   if(!this._closedByUser) {
+    console.error('kmdb: connection lost');
     var timeout = this.config.reconnect.timeout;
     this._reconnectTimer = setTimeout(this.__reconnect, timeout);
   }
