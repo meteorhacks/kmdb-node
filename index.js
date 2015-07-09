@@ -20,6 +20,9 @@ function Client (address) {
   this.__onerror = this._onerror.bind(this);
   this.__onclose = this._onclose.bind(this);
   this.__reconnect = this._reconnect.bind(this);
+
+  this._reconnectTimer = null;
+  this._closedByUser = false;
 }
 
 // Client emits: ['error', 'connect']
@@ -67,6 +70,15 @@ Client.prototype.get = function(reqs, callback) {
   this._call('get', reqs, proto.GetReqBatch, proto.GetResBatch, callback);
 };
 
+Client.prototype.close = function(reqs, callback) {
+  this._closedByUser = true;
+  if(this._reconnectTimer) {
+    clearTimeout(this._reconnectTimer);
+  }
+
+  this._client.close();
+};
+
 Client.prototype._call = function(method, reqs, enc, dec, callback) {
   var batch = {batch: reqs};
   var buffer = enc.encode(batch).toBuffer();
@@ -94,8 +106,15 @@ Client.prototype._reconnect = function() {
     }
 
     console.error('kmdb: reconnect failed: ', err);
-    var timeout = self.config.reconnect.timeout;
-    setTimeout(self.__reconnect, timeout);
+
+    if(self._reconnectTimer) {
+      clearTimeout(self._reconnectTimer);
+    }
+
+    if(!self._closedByUser) {
+      var timeout = self.config.reconnect.timeout;
+      self._reconnectTimer = setTimeout(self.__reconnect, timeout);
+    }
   });
 };
 
@@ -106,8 +125,15 @@ Client.prototype._onerror = function(err) {
 
 Client.prototype._onclose = function() {
   console.error('kmdb: connection lost');
-  var timeout = this.config.reconnect.timeout;
-  setTimeout(this.__reconnect, timeout);
+
+  if(this._reconnectTimer) {
+    clearTimeout(this._reconnectTimer);
+  }
+
+  if(!this._closedByUser) {
+    var timeout = this.config.reconnect.timeout;
+    this._reconnectTimer = setTimeout(this.__reconnect, timeout);
+  }
 };
 
 module.exports = Client;
